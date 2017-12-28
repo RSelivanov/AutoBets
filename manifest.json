@@ -1,0 +1,12 @@
+{
+	"name": "Auto Bets",
+	"description": "Автоматические ставки",
+	"version": "0.2",
+	"manifest_version": 2,
+	"content_scripts": [{
+		"matches": [ "https://betscsgo.net/*", "https://betsdota2.com/*"],
+		"js": ["jquery-1.10.2.js", "background.js"]
+	}]
+}
+
+
