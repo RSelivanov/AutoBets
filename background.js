@@ -1,3 +1,9 @@
+//План:
+//1. Става процент от суммы
+
+// Глобальные переменные
+var timeToReloadPage = null;
+
 /**
  * Точка входа. Сайт загружен после чего начинает выполняться скрипт.
  */
@@ -6,7 +12,6 @@ $(document).ready(function ()
     console.log('Enabled!');
     // инициализируем tick_timer
     setInterval(tick, 1000);
-    // инициализируем reload_timer
 
     // рисуем
     drawing('menu');
@@ -37,6 +42,27 @@ $(function() {
         changeWhiteList(this.id, $(this).data('id'));
         console.log('click');
     });
+	
+	//ловим событие клика
+	$('.bet-skip').click(function() {
+		
+		skipObj = getStorage('skip');
+		console.log(skipObj);
+		
+		var gamesRow = $(this).parent('div').parent('div').parent('div');
+		var id = gamesRow.data('id');
+		
+		if(skipObj[id] == 1){
+			skipObj[id] = 0;
+			drawing('btn_skip', gamesRow);
+		}else{
+			skipObj[id] = 1;
+			drawing('btn_dont_skip', gamesRow);
+		}	
+		
+		//сохраняем объект bets
+		//saveScipObj(skip);
+	})
 }); 
 
 /**
@@ -44,7 +70,18 @@ $(function() {
  */
 function tick() 
 {
-
+	var timeToReloadPage = getTimeToReloadPage();
+	
+	if(timeToReloadPage > 0)
+	{
+		timeToReloadPage --;
+		setTimeToReloadPage(timeToReloadPage);
+		log(timeToReloadPage);
+	}
+	else if(timeToReloadPage == 0)
+	{
+		reloadPage();
+	}
 }
 
 function checkGames(key)
@@ -71,6 +108,8 @@ function checkGames(key)
  */
 function checkNextGame(gamesRow)
 {
+	drawing('btn_skip', gamesRow);
+	
     var settings = getStorage('settings');
 
     var id = getGameInfo('id', gamesRow); 
@@ -157,8 +196,6 @@ function checkNextGame(gamesRow)
         winbank  = parseInt(bankTeam1);
         losebank = parseInt(bankTeam2);
     }
-    
-    //--------------------------------------------------------------------------
    
     var lostBets = getStorage('lost_bets');
     // подгружаем все ставки из localstorige
@@ -168,15 +205,6 @@ function checkNextGame(gamesRow)
     
     // отыгрываем ставку
     if(settings.win_back == true && !$.isEmptyObject(lostBets)){
-        // берем первую ствку из объекта
-        for (var key in lostBets) {
-            
-            // записываем amount отыгрывающейся в win_back
-            betObj.win_back = lostBets[key];
-            //удаляем!!!!!!!
-            
-            break;
-        }
         // получаем ставку покрывающую проигрышь
         amount = calculateAmountWithCoefficient(winbank, losebank, amount, betObj.win_back);
     }
@@ -195,6 +223,20 @@ function checkNextGame(gamesRow)
         return false;
     }
     
+    // отыгрываем ставку
+    if(settings.win_back == true && !$.isEmptyObject(lostBets)){
+        // берем первую ствку из объекта
+        for (var key in lostBets) {
+            
+            // записываем amount отыгрывающейся в win_back
+            betObj.win_back = lostBets[key];
+            // удаляем 
+            delete lostBets[key];
+            setStorage('lost_bets', lostBets);
+            break;
+        }
+    }
+    
     betObj.side = side;
     betObj.amount = amount;
     
@@ -203,8 +245,31 @@ function checkNextGame(gamesRow)
     
     console.log('plase bet '+id+' '+side+' '+amount);
 
+    var GetSessionToken = getJqueryObjFromHtml('$_sessionToken');
+    
+    //setTimeToReloadPage(60);
+    
     // отправляем ajax (id, side, amount)
-    //placeBet(id, side, amount); 
+    /*
+    var load_url = "https://betscsgo.net/index/placebet/"+id+"/"+side+"/"+amount+"/"+GetSessionToken+"/";
+
+    $.ajax(load_url)
+        .done(function(data){
+            data = JSON.parse(data);
+            if (data.success){
+                console.log("Успешно !");
+            } else {
+                switch (data.error){
+                    case "money":
+                        console.log("%c У вас недостаточно денег на счете", 'color: #bf2424'); break;
+                    case "duplicate":
+                        console.log("%c Отмените предыдущую ставку, чтобы снова поставить на это событие", 'color: #bf2424'); break;
+                    default:
+                        console.log("%c Произошла ошибка: "+data.error, 'color: #bf2424'); break;
+                }
+            }
+        })
+	*/
     return true;
 }
 
@@ -379,7 +444,7 @@ function getJqueryObjFromHtml(key)
  * @param JsObject obj <p>Ключ</p>
  * @return string <p>Результат выполения метода</p>
  */
-function getGameInfo(key, obj)
+function getGameInfo(key, obj = null)
 {
     switch (key)
     {
@@ -529,7 +594,7 @@ function parseStringToArray(string)
     if(string !== "") {
         return string.split(',');
     }
-    return '';
+    return new Array();
 }
 
 function mergeArraytoString(array)
@@ -547,12 +612,29 @@ function calculateAmountWithCoefficient(winbank, losebank, amount, lostamount){
     return Math.ceil((Number(amount) + Number(lostamount))/coeff);
 }
 
+//перезагрузить страницу
+function reloadPage()
+{
+	location.reload();
+	return true;
+}
+
+function setTimeToReloadPage(value)
+{
+	timeToReloadPage = value;
+	return true;
+}
+
+function getTimeToReloadPage()
+{
+	return timeToReloadPage;
+}
 /**
  * Отрисовывет html элементы на странице
  * @param string key <p>Ключ</p>
  * @return
  */
-function drawing(key)
+function drawing(key, obj = null)
 {
     switch (key)
     {
@@ -653,6 +735,17 @@ function drawing(key)
                 var gamesRow = $_nextGamesArray[i];
                 
             }
+		case 'btn_skip':
+		console.log($(obj).children('.b-game').children('.b-tourney').children('.bet-skip'));
+			if($(obj).children('.b-game').children('.b-tourney').children('.bet-skip') == 'undefined'){console.log('true');}
+			$(obj).children('.b-game').children('.b-tourney').append('<b class="bet-skip">пропустить</b>');
+			$(obj).children('.b-game').children('.b-tourney').children('.bet-skip').css('color', '#ffbfbf');
+			break;
+		case 'btn_dont_skip':
+			$(obj).children('.b-game').children('.b-tourney').append('<b class="bet-skip">не пропускать</b>');
+			$(obj).children('.b-game').children('.b-tourney').children('.bet-skip').css('color', '#e6ffbf');
+			$(obj).children('.b-game').css('background', '#ffbfbf');
+			break;
     }
 }
 function log(string){wrateLogLine(string);}
