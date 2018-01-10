@@ -1,10 +1,12 @@
-// Глобальные переменные
+/**
+ * Глобальные переменные
+ */
 var timeToReloadPage = null;
 
 /**
  * Точка входа. Сайт загружен после чего начинает выполняться скрипт.
  */
-$(document).ready(function () 
+$(document).ready(function ()
 {
     console.log('Enabled!');
     // инициализируем tick_timer
@@ -15,72 +17,71 @@ $(document).ready(function ()
     drawing('log');
     drawing('white_list');
     //drowing('skip_button');
-    
+
     //прокручиваем все игры чекаем их
     checkGames('nextGame');
- 
-
 });
 
 /**
  * Слушатели событий
  */
-$(function() {
-    $('.menu_input').blur(function() { 
+$(function () {
+    $('.menu_input').blur(function () {
         saveSettingsOption(this.id, $(this).html());
     });
-    
-    $('#add_white_list').blur(function() { 
+
+    $('#add_white_list').blur(function () {
         changeWhiteList(this.id, $(this).html());
         $(this).html('');
     });
 
-    $('body').on('click','.whitelist_delete', function(e) {
+    $('body').on('click', '.whitelist_delete', function (e) {
         changeWhiteList(this.id, $(this).data('id'));
         console.log('click');
     });
-	
-	//ловим событие клика
-	$('.bet-skip').click(function() {
-		
-		skipObj = getStorage('skip');
-		console.log(skipObj);
-		
-		var gamesRow = $(this).parent('div').parent('div').parent('div');
-		var id = gamesRow.data('id');
-		
-		if(skipObj[id] == 1){
-			skipObj[id] = 0;
-			drawing('btn_skip', gamesRow);
-		}else{
-			skipObj[id] = 1;
-			drawing('btn_dont_skip', gamesRow);
-		}	
-		
-		//сохраняем объект bets
-		//saveScipObj(skip);
-	})
-}); 
+
+    $('.bet-skip').click(function () {
+
+        skipObj = getStorage('skip');
+        console.log(skipObj);
+
+        var gamesRow = $(this).parent('div').parent('div').parent('div');
+        var id = gamesRow.data('id');
+
+        if (skipObj[id] == 1) {
+            skipObj[id] = 0;
+            drawing('btn_skip', gamesRow);
+        } else {
+            skipObj[id] = 1;
+            drawing('btn_dont_skip', gamesRow);
+        }
+    })
+});
 
 /**
  * Выполняется каждую секунду
  */
-function tick() 
+function tick()
 {
-	var timeToReloadPage = getTimeToReloadPage();
-	
-	if(timeToReloadPage > 0)
-	{
-		timeToReloadPage --;
-		setTimeToReloadPage(timeToReloadPage);
-		log(timeToReloadPage);
-	}
-	else if(timeToReloadPage == 0)
-	{
-		reloadPage();
-	}
+    var timeToReloadPage = getTimeToReloadPage();
+
+    if (timeToReloadPage > 0)
+    {
+        timeToReloadPage--;
+        setTimeToReloadPage(timeToReloadPage);
+        log(timeToReloadPage);
+    } 
+    else if (timeToReloadPage == 0)
+    {
+        reloadPage();
+    }
 }
 
+/**
+ * Проверяет каждую строчку с игрой
+ * @param string key <p>Ключ</p>
+ * @return boolean <p>Результат выполнения метода</p>
+ */
 function checkGames(key)
 {
     switch (key) {
@@ -89,65 +90,65 @@ function checkGames(key)
             for (var i = 0; i < $_nextGamesArray.length; i++) {
                 var gamesRow = $_nextGamesArray[i];
                 checkNextGame(gamesRow);
+                return true;
             }
         case 'pastGame':
             var $_pastGamesArray = getJqueryObjFromHtml('$_pastGamesArray');
             for (var i = 0; i < $_pastGamesArray.length; i++) {
                 var gamesRow = $_pastGamesArray[i];
                 checkPastGame(gamesRow);
+                return true;
             }
     }
 }
 
 /**
- * Проверет будующие игры
+ * Проверет будущие игры
+ * @param JsObject gamesRow <p>Объект с данными игры</p>
  * @return boolean <p>Результат выполнения метода</p>
  */
 function checkNextGame(gamesRow)
 {
-	drawing('btn_skip', gamesRow);
-	
+    drawing('btn_skip', gamesRow);
+
     var settings = getStorage('settings');
-
-    var id = getGameInfo('id', gamesRow); 
+    var id = getGameInfo('id', gamesRow);
     var side = null;
-
     var amount = settings.amount;
-    
     var nameTeam1 = getGameInfo('nameTeam1', gamesRow);
     var nameTeam2 = getGameInfo('nameTeam2', gamesRow);
 
     // проверям а не стоит ли ставка уже на этом матче
-    if(hasClass('userbet-team1', gamesRow) || hasClass('userbet-team1', gamesRow))
+    if (hasClass('userbet-team1', gamesRow) || hasClass('userbet-team1', gamesRow))
     {
         console.log('Скипаем ствка на эту игру уже установлена');
         return false;
     }
-    
+
     // проверям не пропущена ли игра
     var skipObj = getStorage('skip');
     var skipArray = parseStringToArray(skipObj.skip);
-    //if (skipArrayId[id] !== undefined)
-    if(skipArray.indexOf( id ) !== -1)
+
+    if (skipArray.indexOf(id) !== -1)
     {
         console.log('Скипаем id: %s', id);
         return false;
     }
-    
+
     // проверям включен ли вайтлист
-    if(settings.white_list === true)
-    {        
+    if (settings.white_list === true)
+    {
         // проверям есть ли одна из команд в white листе
         var whiteListObj = getStorage('white_teams');
         var whiteTeamsArray = parseStringToArray(whiteListObj.white_teams);
-        if(whiteTeamsArray.indexOf( nameTeam1 ) === -1 && whiteTeamsArray.indexOf( nameTeam2 ) === -1)
+        if (whiteTeamsArray.indexOf(nameTeam1) === -1 && whiteTeamsArray.indexOf(nameTeam2) === -1)
         {
             console.log('Скипаем команды не в вайтлисте: %s, %s', nameTeam1, nameTeam2);
-            wrateLogLine('Скипаем команды не в вайтлисте: '+nameTeam1+','+nameTeam2);
+            wrateLogLine('Скипаем команды не в вайтлисте: ' + nameTeam1 + ',' + nameTeam2);
             return false;
         }
     }
-    
+
     // проверяем время до начала игры
     var timeToStartUnix = getGameInfo('timeToStart', gamesRow);
     var timeToStartMin = convertUnixtimeToMinutes(timeToStartUnix);
@@ -167,7 +168,7 @@ function checkNextGame(gamesRow)
         console.log('Скипаем процент команды %s: %s %s: %s', nameTeam1, coefficientPercentTeam1, nameTeam2, coefficientPercentTeam2);
         return false;
     }
-    
+
     // проверям на TBD
     if (nameTeam1 === 'TBD' && nameTeam2 === 'TBD')
     {
@@ -179,52 +180,52 @@ function checkNextGame(gamesRow)
     var bankTeam2 = getGameInfo('bankTeam2', gamesRow);
     var winbank = 0;
     var losebank = 0;
-    
+
     if (coefficientPercentTeam1 >= settings.percent_coefficient)
     {
         side = 1;
-        winbank  = parseInt(bankTeam1);
+        winbank = parseInt(bankTeam1);
         losebank = parseInt(bankTeam2);
     }
-    
+
     if (coefficientPercentTeam2 >= settings.percent_coefficient)
     {
         side = 2;
-        winbank  = parseInt(bankTeam1);
+        winbank = parseInt(bankTeam1);
         losebank = parseInt(bankTeam2);
     }
-   
+
     var lostBets = getStorage('lost_bets');
     // подгружаем все ставки из localstorige
     var betsObj = getStorage('bets');
     // формируем новую стаку
     var betObj = new Object();
-    
+
     // отыгрываем ставку
-    if(settings.win_back == true && !$.isEmptyObject(lostBets)){
+    if (settings.win_back == true && !$.isEmptyObject(lostBets)) {
         // получаем ставку покрывающую проигрышь
         amount = calculateAmountWithCoefficient(winbank, losebank, amount, betObj.win_back);
     }
-    
-    if(amount < 1)
+
+    if (amount < 1)
     {
         console.log('Ставка меньше 1 (s%) устанавливаем дефолтную ставку (%s)', amount, settings.amount);
         amount = settings.amount;
     }
     
-    var wallet = getJqueryObjFromHtml('$_wallet');
     // проверям хватает ли денег на ставку
-    if(wallet < amount)
+    var wallet = getJqueryObjFromHtml('$_wallet');
+    if (wallet < amount)
     {
         console.log('Скипаем ставка (%s) привышает остаток в бумажнике (%s)', amount, wallet);
         return false;
     }
-    
+
     // отыгрываем ставку
-    if(settings.win_back == true && !$.isEmptyObject(lostBets)){
+    if (settings.win_back == true && !$.isEmptyObject(lostBets)) {
         // берем первую ствку из объекта
         for (var key in lostBets) {
-            
+
             // записываем amount отыгрывающейся в win_back
             betObj.win_back = lostBets[key];
             // удаляем 
@@ -233,78 +234,64 @@ function checkNextGame(gamesRow)
             break;
         }
     }
-    
+
     betObj.side = side;
     betObj.amount = amount;
-    
+
     betsObj[id] = betObj;
     setStorage('bets', betsObj);
-    
-    console.log('plase bet '+id+' '+side+' '+amount);
+
+    console.log('plase bet ' + id + ' ' + side + ' ' + amount);
 
     var GetSessionToken = getJqueryObjFromHtml('$_sessionToken');
-    
-    //setTimeToReloadPage(60);
-    
-    // отправляем ajax (id, side, amount)
-    /*
-    var load_url = "https://betscsgo.net/index/placebet/"+id+"/"+side+"/"+amount+"/"+GetSessionToken+"/";
 
-    $.ajax(load_url)
-        .done(function(data){
-            data = JSON.parse(data);
-            if (data.success){
-                console.log("Успешно !");
-            } else {
-                switch (data.error){
-                    case "money":
-                        console.log("%c У вас недостаточно денег на счете", 'color: #bf2424'); break;
-                    case "duplicate":
-                        console.log("%c Отмените предыдущую ставку, чтобы снова поставить на это событие", 'color: #bf2424'); break;
-                    default:
-                        console.log("%c Произошла ошибка: "+data.error, 'color: #bf2424'); break;
-                }
-            }
-        })
-	*/
+    //setTimeToReloadPage(60);
+
+    // отправляем ajax (id, side, amount)
+    
     return true;
 }
 
+/**
+ * Проверяет прошедшие игры
+ * @param JsObject gamesRow <p>Объект с данными игры</p>
+ * @return boolean <p>Результат выполнения метода</p>
+ */
 function checkPastGame(gamesRow)
 {
     var settings = getStorage('settings');
-    var id = getGameInfo('id', gamesRow); 
-    
+    var id = getGameInfo('id', gamesRow);
+
     // подгружаем все ставки из localstorige
     var betsObj = getStorage('bets');
-    
+
     // берем ставку с текущем id
     var betObj = new Object();
     betObj = betsObj[id];
-    
+
     var winner = null;
-    if(typeof betObj != "undefined") {
-        
-        if(hasClass('winner-team1', gamesRow)){
+    if (typeof betObj != "undefined") {
+
+        if (hasClass('winner-team1', gamesRow)) {
             winner = 1;
         }
-        
-        if(hasClass('winner-team2', gamesRow)){
+
+        if (hasClass('winner-team2', gamesRow)) {
             winner = 2;
         }
-        
+
         // если матч перенесен или отменен
-        if(hasClass('result-postponed', gamesRow) || hasClass('no-result', gamesRow)){
+        if (hasClass('result-postponed', gamesRow) || hasClass('no-result', gamesRow)) {
             // удаляем игру
             delete betsObj[id];
             setStorage('bets', betsObj);
             return true;
         }
-        
+
         // если игра выйграна
-        if(winner != null && winner == betObj.side){
+        if (winner != null && winner == betObj.side) {
             // если игра отыгывалась убираем игру с отыгровки
-            if(settings.win_back == true){
+            if (settings.win_back == true) {
                 var lostBets = getStorage('lost_bets');
                 delete lostBets[id];
                 setStorage('lost_bets', lostBets);
@@ -314,11 +301,11 @@ function checkPastGame(gamesRow)
             setStorage('bets', betsObj);
             return true;
         }
-        
+
         // если игра проиграна
-        if(winner != null && winner != betObj.side){ 
+        if (winner != null && winner != betObj.side) {
             // добавляем игру на отыгровку если отыгровка включена
-            if(settings.win_back == true){
+            if (settings.win_back == true) {
                 var lostBets = getStorage('lost_bets');
                 lostBets[id] = betObj.amount;
                 setStorage('lost_bets', lostBets);
@@ -331,6 +318,7 @@ function checkPastGame(gamesRow)
     }
     return true;
 }
+
 /**
  * Сохраняет объект с информацией в память браузера
  * @param string key <p>Ключ</p>
@@ -370,14 +358,14 @@ function getStorage(key)
                 settingsObj.win_back = false;
                 // whitelist
                 settingsObj.white_list = false;
-                
+
                 setStorage('settings', settingsObj);
             }
             return settingsObj;
         case 'skip':
             var localStorageSkip = localStorage.getItem(key);
             var skipObj = JSON.parse(localStorageSkip);
-            
+
             if (skipObj == null)
             {
                 var skipObj = new Object();
@@ -388,7 +376,7 @@ function getStorage(key)
         case 'white_teams':
             var localStorageWhiteTeams = localStorage.getItem(key);
             var whiteTeamsObj = JSON.parse(localStorageWhiteTeams);
-            
+
             if (whiteTeamsObj == null)
             {
                 var whiteTeamsObj = new Object();
@@ -397,7 +385,6 @@ function getStorage(key)
             }
             return whiteTeamsObj;
         default:
-
             var localStorageStr = localStorage.getItem(key);
             var defaultObj = JSON.parse(localStorageStr);
 
@@ -413,7 +400,7 @@ function getStorage(key)
 /**
  * Получает jQuery объект со страницы
  * @param string key <p>Ключ</p>
- * @return JsObject <p>Значение</p>
+ * @return JqueryObject <p>Значение</p>
  */
 function getJqueryObjFromHtml(key)
 {
@@ -436,6 +423,7 @@ function getJqueryObjFromHtml(key)
             return $("#downloadAppBanner");
     }
 }
+
 /**
  * Получает string по ключу из jQuery объекта
  * @param JsObject obj <p>Ключ</p>
@@ -472,7 +460,8 @@ function getGameInfo(key, obj = null)
 
 /**
  * Проверям уставновлена ли ставка на матч
- * @param JsObject obj <p>Ключ</p>
+ * @param JsObject key <p>Ключ</p>
+ * @param JsObject obj <p>Объект</p>
  * @return boolean <p>Результат выполнения метода</p>
  */
 function hasClass(key, obj)
@@ -480,20 +469,33 @@ function hasClass(key, obj)
     switch (key)
     {
         case 'userbet-team1':
-            if($(obj).hasClass("userbet-team1")) { return true; }
+            if ($(obj).hasClass("userbet-team1")) {
+                return true;
+            }
         case 'userbet-team2':
-            if($(obj).hasClass("userbet-team2")) { return true; }
+            if ($(obj).hasClass("userbet-team2")) {
+                return true;
+            }
         case 'winner-team1':
-            if($(obj).hasClass("winner-team1")) { return true; }
+            if ($(obj).hasClass("winner-team1")) {
+                return true;
+            }
         case 'winner-team2':
-            if($(obj).hasClass("winner-team2")) { return true; }
+            if ($(obj).hasClass("winner-team2")) {
+                return true;
+            }
         case 'result-postponed':
-            if($(obj).hasClass("result-postponed")) { return true; }
+            if ($(obj).hasClass("result-postponed")) {
+                return true;
+            }
         case 'no-result':
-            if($(obj).hasClass("no-result")) { return true; }
-        return false;
+            if ($(obj).hasClass("no-result")) {
+                return true;
+            }
+            return false;
     }
 }
+
 /**
  * Сохраняем опцию настроек
  * @param String id <p>Ид</p>
@@ -502,8 +504,12 @@ function hasClass(key, obj)
  */
 function saveSettingsOption(id, value)
 {
-    if(value === 'true'){value = true;}
-    if(value === 'false'){value = false;}
+    if (value === 'true') {
+        value = true;
+    }
+    if (value === 'false') {
+        value = false;
+    }
     var settings = getStorage('settings');
     settings[id] = value;
     setStorage('settings', settings);
@@ -511,9 +517,16 @@ function saveSettingsOption(id, value)
     return true;
 }
 
-function changeWhiteList(id, value)
+/**
+ * Вносит изменения в вайтлист
+ * @param String action <p>Действие (add_white_list/whitelist_delete)</p>
+ * @param String value <p>Значение</p>
+ * @return boolean <p>Результат выполнения метода</p>
+ */
+function changeWhiteList(action, value)
 {
-    if(id === 'add_white_list'){
+    if (action === 'add_white_list') 
+    {
         // достаем объект из памяти
         var whiteListObj = getStorage('white_teams');
         // конвертируем в массив
@@ -531,7 +544,8 @@ function changeWhiteList(id, value)
         log('Добавляем команду в white list: ' + value);
         return true;
     }
-    if(id === 'whitelist_delete'){
+    else if (action === 'whitelist_delete') 
+    {
         // достаем объект из памяти
         var whiteListObj = getStorage('white_teams');
         // конвертируем в массив
@@ -559,7 +573,7 @@ function changeWhiteList(id, value)
  */
 function convertUnixtimeToMinutes(unixtime)
 {
-    var min = (unixtime - Math.round((new Date()).getTime() / 1000))/60;
+    var min = (unixtime - Math.round((new Date()).getTime() / 1000)) / 60;
     return min.toFixed();
 }
 
@@ -571,14 +585,14 @@ function convertUnixtimeToMinutes(unixtime)
 function convertUnixtimeToDate(unixtime)
 {
     var date = new Date(Number(unixtime));
-    
+
     var year = date.getFullYear();
     var month = date.getMonth();
     var day = date.getDate();
     var hours = date.getHours();
     var minutes = date.getMinutes();
 
-    return day + '.' + month + '.' + year + ' ' + hours + ':' + minutes+': ';
+    return day + '.' + month + '.' + year + ' ' + hours + ':' + minutes + ': ';
 }
 
 /**
@@ -588,48 +602,71 @@ function convertUnixtimeToDate(unixtime)
  */
 function parseStringToArray(string)
 {
-    if(string !== "") {
+    if (string !== "") {
         return string.split(',');
     }
     return new Array();
 }
 
+/**
+ * Объединяет массив в строку используя ","
+ * @param Array array <p>Массив</p>
+ * @return String <p>Строка</p>
+ */
 function mergeArraytoString(array)
 {
-    if(array !== null) {
+    if (array !== null) {
         return array.join(',')
     }
     return null;
 }
 
-function calculateAmountWithCoefficient(winbank, losebank, amount, lostamount){
-    var coeff = Number(losebank)/Number(winbank);
-    //console.log('calculateAmountWithCoefficient: winbank ('+winbank+') losebank ('+losebank+') amount ('+amount+') lostamount ('+lostamount+')');
-    //console.log('calculateAmountWithCoefficient: coeff ('+coeff+') new amount ('+Math.ceil((Number(amount) + Number(lostamount))/coeff)+')');
-    return Math.ceil((Number(amount) + Number(lostamount))/coeff);
+/**
+ * Расщитывает сумму используя коэффициент (для отыгровки)
+ * @param String winbank <p>Банк победителя</p>
+ * @param String losebank <p>Банк победенного</p>
+ * @param String amount <p>Дефолтная сумма</p>
+ * @param String lostamount <p>Сума которую нужно отыграть</p>
+ * @return Number <p>Сумма ставки с учетом коэффициента</p>
+ */
+function calculateAmountWithCoefficient(winbank, losebank, amount, lostamount) {
+    var coeff = Number(losebank) / Number(winbank);
+    return Math.ceil((Number(amount) + Number(lostamount)) / coeff);
 }
 
-//перезагрузить страницу
+/**
+ * Перезагружает страницу
+ * @return boolean <p>Результат выполнения метода</p>
+ */
 function reloadPage()
 {
-	location.reload();
-	return true;
+    location.reload();
+    return true;
 }
 
+/**
+ * Устанавливает время через которое произойдет перезагрузка страницы
+ * @return boolean <p>Результат выполнения метода</p>
+ */
 function setTimeToReloadPage(value)
 {
-	timeToReloadPage = value;
-	return true;
+    timeToReloadPage = value;
+    return true;
 }
 
+/**
+ * Получает время через которое произойдет перезагрузка страницы
+ * @return boolean <p>Результат выполнения метода</p>
+ */
 function getTimeToReloadPage()
 {
-	return timeToReloadPage;
+    return timeToReloadPage;
 }
+
 /**
  * Отрисовывет html элементы на странице
  * @param string key <p>Ключ</p>
- * @return
+ * @param JqueryObject <p>Объект в котором необходимо отрисовать элемент</p>
  */
 function drawing(key, obj = null)
 {
@@ -638,80 +675,80 @@ function drawing(key, obj = null)
         case 'menu':
             // получаем объект с настройкми
             var settings = getStorage('settings');
-            
-            var menu = ''+
-            '<table class="table" style="width: 100%;">'+
-              '<thead>'+
-                '<tr>'+
-                  '<th scope="col">#</th>'+
-                  '<th scope="col">Опция</th>'+
-                  '<th scope="col">Значение</th>'+
-                '</tr>'+
-              '</thead>'+
-              '<tbody>'+
-                '<tr>'+
-                  '<th scope="row">1</th>'+
-                  '<td>Сумма ставки:</td>'+
-                  '<td><div onkeyup="" contenteditable="true" class="menu_input" id="amount">' + settings.amount + '</div></td>'+
-                '</tr>'+
-                '<tr>'+
-                  '<th scope="row">2</th>'+
-                  '<td>Делать ставка за мин:</td>'+
-                  '<td><div onkeyup="" contenteditable="true" class="menu_input" id="time_to_start">' + settings.time_to_start + '</div></td>'+
-                '</tr>'+
-                '<tr>'+
-                  '<th scope="row">3</th>'+
-                  '<td>Процент коэффициента:</td>'+
-                  '<td><div onkeyup="" contenteditable="true" class="menu_input" id="percent_coefficient">' + settings.percent_coefficient + '</div></td>'+
-                '</tr>'+
-                '<tr>'+
-                  '<th scope="row">4</th>'+
-                  '<td>Отыгрывать (true/false):</td>'+
-                  '<td><div onkeyup="" contenteditable="true" class="menu_input" id="win_back">' + settings.win_back + '</div></td>'+
-                '</tr>'+
-                 '<tr>'+
-                  '<th scope="row">5</th>'+
-                  '<td>White list (true/false):</td>'+
-                  '<td><div onkeyup="" contenteditable="true" class="menu_input" id="white_list">' + settings.white_list + '</div></td>'+
-                '</tr>'+
-                '</tr>'+
-                 '<tr>'+
-                  '<th scope="row">5</th>'+
-                  '<td>Добавть команду:</td>'+
-                  '<td><div onkeyup="" contenteditable="true" class="whitelist_input" id="add_white_list"></div></td>'+
-                '</tr>'+
-              '</tbody>'+
-            '</table>'+
-            '</br>'+
-            '<div id="white_list_container"></div>';
+
+            var menu = '' +
+                    '<table class="table" style="width: 100%;">' +
+                    '<thead>' +
+                    '<tr>' +
+                    '<th scope="col">#</th>' +
+                    '<th scope="col">Опция</th>' +
+                    '<th scope="col">Значение</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody>' +
+                    '<tr>' +
+                    '<th scope="row">1</th>' +
+                    '<td>Сумма ставки:</td>' +
+                    '<td><div onkeyup="" contenteditable="true" class="menu_input" id="amount">' + settings.amount + '</div></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<th scope="row">2</th>' +
+                    '<td>Делать ставка за мин:</td>' +
+                    '<td><div onkeyup="" contenteditable="true" class="menu_input" id="time_to_start">' + settings.time_to_start + '</div></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<th scope="row">3</th>' +
+                    '<td>Процент коэффициента:</td>' +
+                    '<td><div onkeyup="" contenteditable="true" class="menu_input" id="percent_coefficient">' + settings.percent_coefficient + '</div></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<th scope="row">4</th>' +
+                    '<td>Отыгрывать (true/false):</td>' +
+                    '<td><div onkeyup="" contenteditable="true" class="menu_input" id="win_back">' + settings.win_back + '</div></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<th scope="row">5</th>' +
+                    '<td>White list (true/false):</td>' +
+                    '<td><div onkeyup="" contenteditable="true" class="menu_input" id="white_list">' + settings.white_list + '</div></td>' +
+                    '</tr>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<th scope="row">5</th>' +
+                    '<td>Добавть команду:</td>' +
+                    '<td><div onkeyup="" contenteditable="true" class="whitelist_input" id="add_white_list"></div></td>' +
+                    '</tr>' +
+                    '</tbody>' +
+                    '</table>' +
+                    '</br>' +
+                    '<div id="white_list_container"></div>';
             $(".right_inner").html(menu);
             //break;
         case 'white_list':
             var whiteListObj = getStorage('white_teams');
             var whiteTeamsArray = parseStringToArray(whiteListObj.white_teams);
-            var whiteTeamsList = '<div><strong>White List :</strong></div>'+
-            '<table class="table" style="width: 100%;">'+
-              '<thead>'+
-                '<tr>'+
-                  '<th scope="col">#</th>'+
-                  '<th scope="col">Название команды</th>'+
-                  '<th scope="col">Действие</th>'+
-                '</tr>'+
-              '</thead>'+
-              '<tbody>';
-                for (var i = 0; i < whiteTeamsArray.length; i++) {
-                    whiteTeamsList += 
-                    '<tr>'+
-                      '<th scope="row">'+i+'</th>'+
-                      '<td>'+whiteTeamsArray[i]+'</td>'+
-                      '<td><div class="whitelist_delete" id="whitelist_delete" data-id="'+i+'" style="cursor: pointer;">Удалить</div></td>'+
-                    '</tr>';
-                }
-                whiteTeamsList += 
-                '</tbody>'+
-            '</table>'+
-            '</br>';
-            
+            var whiteTeamsList = '<div><strong>White List :</strong></div>' +
+                    '<table class="table" style="width: 100%;">' +
+                    '<thead>' +
+                    '<tr>' +
+                    '<th scope="col">#</th>' +
+                    '<th scope="col">Название команды</th>' +
+                    '<th scope="col">Действие</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
+            for (var i = 0; i < whiteTeamsArray.length; i++) {
+                whiteTeamsList +=
+                        '<tr>' +
+                        '<th scope="row">' + i + '</th>' +
+                        '<td>' + whiteTeamsArray[i] + '</td>' +
+                        '<td><div class="whitelist_delete" id="whitelist_delete" data-id="' + i + '" style="cursor: pointer;">Удалить</div></td>' +
+                        '</tr>';
+            }
+            whiteTeamsList +=
+                    '</tbody>' +
+                    '</table>' +
+                    '</br>';
+
             $("#white_list_container").html(whiteTeamsList);
             //break;
         case 'log':
@@ -722,75 +759,68 @@ function drawing(key, obj = null)
             $_log.css("overflow", "auto");
             $_log.css("height", "200px");
             $_log.html(content);
-            
+
             var logObj = getStorage('log');
             fillLog(logObj);
-            
+
         case 'skip_button':
             var $_nextGamesArray = getJqueryObjFromHtml('$_nextGamesArray');
-            for(var i = 0; i < $_nextGamesArray.length; i++) {
+            for (var i = 0; i < $_nextGamesArray.length; i++) {
                 var gamesRow = $_nextGamesArray[i];
-                
+
             }
-		case 'btn_skip':
-		console.log($(obj).children('.b-game').children('.b-tourney').children('.bet-skip'));
-			if($(obj).children('.b-game').children('.b-tourney').children('.bet-skip') == 'undefined'){console.log('true');}
-			$(obj).children('.b-game').children('.b-tourney').append('<b class="bet-skip">пропустить</b>');
-			$(obj).children('.b-game').children('.b-tourney').children('.bet-skip').css('color', '#ffbfbf');
-			break;
-		case 'btn_dont_skip':
-			$(obj).children('.b-game').children('.b-tourney').append('<b class="bet-skip">не пропускать</b>');
-			$(obj).children('.b-game').children('.b-tourney').children('.bet-skip').css('color', '#e6ffbf');
-			$(obj).children('.b-game').css('background', '#ffbfbf');
-			break;
+        case 'btn_skip':
+            console.log($(obj).children('.b-game').children('.b-tourney').children('.bet-skip'));
+            if ($(obj).children('.b-game').children('.b-tourney').children('.bet-skip') == 'undefined') {
+                console.log('true');
+            }
+            $(obj).children('.b-game').children('.b-tourney').append('<b class="bet-skip">пропустить</b>');
+            $(obj).children('.b-game').children('.b-tourney').children('.bet-skip').css('color', '#ffbfbf');
+            break;
+        case 'btn_dont_skip':
+            $(obj).children('.b-game').children('.b-tourney').append('<b class="bet-skip">не пропускать</b>');
+            $(obj).children('.b-game').children('.b-tourney').children('.bet-skip').css('color', '#e6ffbf');
+            $(obj).children('.b-game').css('background', '#ffbfbf');
+            break;
     }
-}
-function log(string){wrateLogLine(string);}
-function wrateLogLine(string)
-{
-    // тут обновляем в localstorege
-    var dateUnix = Date.now();
-    var logObj = getStorage('log');
-    logObj[dateUnix] = string;
-    setStorage('log', logObj); 
-    
-    addLog(string);
-}
-
-function addLog(string){
-    var $_log = getJqueryObjFromHtml('$_log');
-    var content = $_log.html();
-    content += '<p>'+convertUnixtimeToDate(Date.now()) + string+'</p>';
-    $_log.html(content);
-    
-    $($_log).scrollTop(999999);
-}
-
-function fillLog(obj){
-    var $_log = getJqueryObjFromHtml('$_log');
-    var content = '';
-    for (key in obj) {
-        content += '<p>'+convertUnixtimeToDate(key) + obj[key]+'</p>';
-    }
-    $_log.html(content);
-    
-    $($_log).scrollTop(999999);
-}
-
-function checkBet()
-{
-
 }
 
 /**
- * Делает ставку
- * @param string id <p>Ид матча</p>
- * @param string side <p>Команда 1 или 2</p>
- * @param string amount <p>Количество денег в рублях</p>
- * @return boolean <p>Результат выполнения метода</p>
+ * Добавляет строку в лог
+ * @param string string <p>Запись</p>
  */
-function placeBet(obj, id, side, amount) 
+function log(string) { wrateLogLine(string); }
+function wrateLogLine(string)
 {
-    console.log("Деламем ставку id: %i side: %i amount: %i token: %s", id, side, amount, getJqueryObjFromHtml('$_sessionToken'));
-    return true;
+    var dateUnix = Date.now();
+    var logObj = getStorage('log');
+    logObj[dateUnix] = string;
+    setStorage('log', logObj);
+    addLog(string);
+}
+
+/**
+ * Отрисовывает сроку на экране
+ * @param string string <p>Запись</p>
+ */
+function addLog(string) {
+    var $_log = getJqueryObjFromHtml('$_log');
+    var content = $_log.html();
+    content += '<p>' + convertUnixtimeToDate(Date.now()) + string + '</p>';
+    $_log.html(content);
+    $($_log).scrollTop(999999);
+}
+
+/**
+ * Заполняет лог записями
+ * @param JsObject <p>Объект с записями лога</p>
+ */
+function fillLog(obj) {
+    var $_log = getJqueryObjFromHtml('$_log');
+    var content = '';
+    for (key in obj) {
+        content += '<p>' + convertUnixtimeToDate(key) + obj[key] + '</p>';
+    }
+    $_log.html(content);
+    $($_log).scrollTop(999999);
 }
